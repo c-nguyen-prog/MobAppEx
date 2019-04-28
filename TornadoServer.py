@@ -261,10 +261,10 @@ if __name__ == "__main__":
     tornado.options.parse_command_line()
     app = Application()
     location = os.path.join(os.getcwd(), "certs")
-    #ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-    #ssl_ctx.load_cert_chain(os.path.join(location, "server.crt"),
-    #                        os.path.join(location, "server.key"))
-    #server = tornado.httpserver.HTTPServer(app, ssl_options=ssl_ctx)
+    ssl_ctx = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+    ssl_ctx.load_cert_chain(os.path.join(location, "server-cert.crt"),
+                            os.path.join(location, "cert-gen.key"))
+    server = tornado.httpserver.HTTPServer(app, ssl_options=ssl_ctx)
     server = tornado.httpserver.HTTPServer(app)
     server.listen(8888)
     print("REST API Server started on: https://localhost:8888")
