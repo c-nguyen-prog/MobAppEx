@@ -1,0 +1,167 @@
+# **MobAppEx Server API Documentation**
+
+
+GET /
+=========
+This page
+
+POST /user/signup
+=========
+Function to handle sign up process, expected input:
+~~~~
+{
+    "title": String 
+    "firstName": String 
+    "lastName": String 
+    "matriculationNumber": String 
+    "email": String 
+    "password": String 
+}
+~~~~
+
+Response example:
+!!! SUCCESS
+    Response for successfully signing up:
+~~~~
+{
+    "status": "success"
+}
+~~~~
+
+!!! WARNING
+    When email is already registered:
+~~~~
+{
+    "status": "fail",
+    "reason": "user-existed"
+}
+~~~~
+
+!!! WARNING
+    When email used is not of university domain:
+~~~~
+{
+    "status": "fail",
+    "reason": "not-university-domain"
+}
+~~~~
+
+POST /user/login
+=========
+Function to handle login process, expected input:
+~~~~
+    {
+		"email": String
+		"password": String
+    }
+~~~~
+
+Response example: 
+!!! SUCCESS
+    Response for successfully logging in:
+~~~~
+{
+    "status": "success",
+    "user": {
+        "name": {
+            "title": "Mr.",
+            "last_name": "Nguyen",
+            "first_name": "Chi"
+        },
+        "matriculationNumber": "123456",
+        "email": "test1@stud.fra-uas.de"
+    }
+}
+~~~~
+!!! WARNING
+    When password and email aren't matched:
+~~~~
+{
+    "status": "fail",
+    "reason": "no-match"
+}
+~~~~
+!!! WARNING
+    When the email isn't registered:
+~~~~
+{
+    "status": "fail",
+    "reason": "user-not-existed"
+}
+~~~~
+POST /user/password/reset
+=========
+Function to handle password reset request for a user (when forgot password), expected input:
+~~~~
+{
+    "username": String
+}
+~~~~
+
+Response example:
+!!! SUCCESS
+    Successfully requesting a password change generates a random 16-bit token:
+~~~~
+{
+	"status": "success",
+	"reset_token": "mKoP8tuRsxkotNvilbzcgw"
+}
+~~~~
+
+!!! WARNING
+    When failed to request a password change, token is not saved in DB and can be ignored:
+~~~~
+{
+	"status": "fail",
+	"reset_token": "mKoP8tuRsxkotNvilbzcgw"
+}
+~~~~
+GET /user/password/change?token=xxx
+=========
+Function to load specific page a one-time password change, wrong token would result error.
+
+Response example:
+
+!!! SUCCESS
+    Token is correct:	
+~~~~
+{
+    "status": "success",
+	"email": "test@stud.fra-uas.de"
+}
+~~~~
+
+!!! WARNING
+    Token is incorrect:
+~~~~
+Status 400, "Invalid token"
+~~~~
+
+POST /user/password/change
+=========
+Function to submit new password to backend, expected input:
+~~~~
+{
+	"email": String
+	"password": String
+}
+~~~~
+
+Response example:
+!!! SUCCESS
+    Password successfully changed, token is deleted, and no longer available to be accessed via GET request:
+~~~~
+{
+    "status": "success"
+}
+~~~~	
+
+!!! WARNING
+    Password change failed, token is still available for access:
+~~~~
+{
+    "status": "fail"
+}
+~~~~
+
+
