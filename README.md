@@ -20,6 +20,7 @@ Function to handle sign up process, expected input:
 ~~~~
 
 Response example:
+
 !!! SUCCESS
     Response for successfully signing up:
 ~~~~
@@ -57,6 +58,7 @@ Function to handle login process, expected input:
 ~~~~
 
 Response example: 
+
 !!! SUCCESS
     Response for successfully logging in:
 ~~~~
@@ -73,6 +75,7 @@ Response example:
     }
 }
 ~~~~
+
 !!! WARNING
     When password and email aren't matched:
 ~~~~
@@ -81,6 +84,7 @@ Response example:
     "reason": "no-match"
 }
 ~~~~
+
 !!! WARNING
     When the email isn't registered:
 ~~~~
@@ -89,6 +93,7 @@ Response example:
     "reason": "user-not-existed"
 }
 ~~~~
+
 POST /user/password/reset
 =========
 Function to handle password reset request for a user (when forgot password), expected input:
@@ -99,6 +104,7 @@ Function to handle password reset request for a user (when forgot password), exp
 ~~~~
 
 Response example:
+
 !!! SUCCESS
     Successfully requesting a password change generates a random 16-bit token:
 ~~~~
@@ -116,6 +122,7 @@ Response example:
 	"reset_token": "mKoP8tuRsxkotNvilbzcgw"
 }
 ~~~~
+
 GET /user/password/change?token=xxx
 =========
 Function to load specific page a one-time password change, wrong token would result error.
@@ -139,6 +146,7 @@ Status 400, "Invalid token"
 
 POST /user/password/change
 =========
+
 Function to submit new password to backend, expected input:
 ~~~~
 {
@@ -148,6 +156,7 @@ Function to submit new password to backend, expected input:
 ~~~~
 
 Response example:
+
 !!! SUCCESS
     Password successfully changed, token is deleted, and no longer available to be accessed via GET request:
 ~~~~
@@ -163,5 +172,3 @@ Response example:
     "status": "fail"
 }
 ~~~~
-
-
