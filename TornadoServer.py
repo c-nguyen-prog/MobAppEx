@@ -27,7 +27,12 @@ executor = ThreadPoolExecutor(8)  # declare 8 threads
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
-        self.write("SERVER REST API")
+        # self.write("SERVER REST API<p>"
+        #            "/user/login <p>"
+        #            "/user/signup <p>"
+        #            "/user/password/reset <p>"
+        #            "/user/password/change")
+        self.render("readme.md.html")
 
 
 """
@@ -107,11 +112,11 @@ class LogInHandler(tornado.web.RequestHandler):
 POST /user/signup
 Function to handle sign up request, json format: 
 {
-    "title": String
-    "firstName": String
-    "lastName": String
-    "matriculationNumber": String
-    "email": String
+    "title": String,
+    "firstName": String,
+    "lastName": String,
+    "matriculationNumber": String,
+    "email": String,
     "password": String
     
 }
@@ -264,12 +269,16 @@ class PasswordChangeHandler(tornado.web.RequestHandler):
 
     async def get(self):
         token = self.get_argument("token", None, True)
-        document = await self.db.users.find_one({"reset_token": token})
         status = "fail"
+        email = ""
+        document = await self.db.users.find_one({"reset_token": token})
         if document is not None:
             status = "success"
+            email = document["username"]
+
         json_response = {
-            "status": status
+            "status": status,
+            "email": email
         }
         print(json_response)
         self.write(json.dumps(json_response))
@@ -321,6 +330,7 @@ class Application(tornado.web.Application):
 
         settings = {
             "debug": True,
+            "static_path": os.path.join(os.getcwd(), "static")
         }
 
         tornado.web.Application.__init__(self, handlers, **settings)
