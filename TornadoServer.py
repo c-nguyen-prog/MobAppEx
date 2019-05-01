@@ -8,7 +8,6 @@ import tornado.gen
 import tornado.httpserver
 import tornado.escape
 import tornado.websocket
-import json
 import bcrypt
 import motor.motor_tornado
 import pymongo
@@ -17,6 +16,8 @@ import requests
 import os
 import ssl
 import datetime
+import json
+import secrets
 import random
 from concurrent.futures import ThreadPoolExecutor
 from tornado import options
@@ -161,6 +162,7 @@ class SignUpHandler(tornado.web.RequestHandler):
             else:                                                                      # Username is available
                 salt = bcrypt.gensalt()                                                # Generate a random salt
                 hashed_pass = bcrypt.hashpw(password.encode("utf8"), salt)             # Hash the password with salt
+                registered_date = datetime.datetime.now()
                 new_user = await db.users.insert_one({"_id": username,
                                                       "username": username,
                                                       "password": hashed_pass,
@@ -172,6 +174,9 @@ class SignUpHandler(tornado.web.RequestHandler):
                                                       },
                                                       "matriculation_number": matriculation_number,
                                                       "type": "user",
+                                                      "status": "active",
+                                                      "registered_date": registered_date,
+                                                      "reset_token": None
                                                       })
                 json_response = {
                     "status": "success"
@@ -193,14 +198,13 @@ class SignUpHandler(tornado.web.RequestHandler):
 
 
 """
-POST /user/activate
+POST /user/password/reset
 Endpoint to handle request for activating an user account, json format:
 {
     "username": String,
-    "balance": number
 }
 """
-class UserActivateHandler(tornado.web.RequestHandler):
+class PasswordResetHandler(tornado.web.RequestHandler):
     def set_default_headers(self):
         self.set_header("Access-Control-Allow-Origin", "*")
         self.set_header("Access-Control-Allow-Headers", "x-requested-with")
@@ -215,22 +219,84 @@ class UserActivateHandler(tornado.web.RequestHandler):
         pass
 
     async def post(self):
-        status = "fail"
         data = json.loads(self.request.body)
-        print(data)
-        username = data["username"]
-        balance = data["balance"]
-        client = motor.motor_tornado.MotorClient('mongodb://localhost:27017')           # Connect to MongoDB server
-        db = client.mobappex
+        username = data["email"]
+        print("PASS RESET REQ: " + str(data))
+        token = secrets.token_urlsafe(16)
+        status = "fail"
+        client = motor.motor_tornado.MotorClient('mongodb://localhost:27017')  # Connect to MongoDB server
+        db = client.mobappex  # Connect to MobAppEx DB
         document = await db.users.find_one({"username": username})
         if document is not None:
-            status = "OK"
+            status = "success"
             update_transaction = db.users.update_one(
                 {"username": username},
-                {"$set": {"status": "active"}})
-            update_transaction = db.users.update_one(
+                {"$set": {"reset_token": token}})
+        json_response = {
+            "status": status,
+            "reset_token": token
+        }
+        print(json_response)
+        self.write(json.dumps(json_response))
+        self.set_header('Content-Type', 'application/json')
+        self.finish()
+
+
+"""
+GET /user/password/change?token=xxx
+
+POST /user/password/change
+"""
+class PasswordChangeHandler(tornado.web.RequestHandler):
+    def initialize(self):
+        client = motor.motor_tornado.MotorClient('mongodb://localhost:27017')       # Connect to MongoDB server
+        self.db = client.mobappex                                                   # Connect to MobAppEx DB
+
+    def set_default_headers(self):
+        self.set_header("Access-Control-Allow-Origin", "*")
+        self.set_header("Access-Control-Allow-Headers", "x-requested-with")
+        self.set_header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+        self.set_header("Access-Control-Allow-Headers", "access-control-allow-origin,authorization,content-type")
+
+    def options(self):
+        self.set_status(204)
+        self.finish()
+
+    async def get(self):
+        token = self.get_argument("token", None, True)
+        document = await self.db.users.find_one({"reset_token": token})
+        status = "fail"
+        if document is not None:
+            status = "success"
+        json_response = {
+            "status": status
+        }
+        print(json_response)
+        self.write(json.dumps(json_response))
+        self.set_header('Content-Type', 'application/json')
+        self.finish()
+
+    async def post(self):
+        data = json.loads(self.request.body)
+        username = data["email"]
+        password = data["password"]
+        print("PASS CHANGE REQ: " + str(data))
+        status = "fail"
+        document = await self.db.users.find_one({"username": username})
+        if document is not None:
+            status = "success"
+            salt = bcrypt.gensalt()                                                 # Generate a random salt
+            hashed_pass = bcrypt.hashpw(password.encode("utf8"), salt)              # Hash the password with salt
+            update_password = self.db.users.update_one(
                 {"username": username},
-                {"$set": {"balance": balance}})
+                {"$set": {"password": hashed_pass}})
+            update_salt = self.db.users.update_one(
+                {"username": username},
+                {"$set": {"salt": salt}})
+            remove_token = self.db.users.update_one(
+                {"username": username},
+                {"$set": {"reset_token": None}})
+
         json_response = {
             "status": status
         }
@@ -247,6 +313,9 @@ class Application(tornado.web.Application):
             (r"/", MainHandler),
             (r"/user/login", LogInHandler),
             (r"/user/signup", SignUpHandler),
+            (r"/user/password/reset", PasswordResetHandler),
+            (r"/user/password/change", PasswordChangeHandler)
+
             # Add more paths here
         ]
 
