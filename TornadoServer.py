@@ -269,21 +269,20 @@ class PasswordChangeHandler(tornado.web.RequestHandler):
 
     async def get(self):
         token = self.get_argument("token", None, True)
-        status = "fail"
-        email = ""
         document = await self.db.users.find_one({"reset_token": token})
         if document is not None:
-            status = "success"
             email = document["username"]
+            json_response = {
+                "status": "success",
+                "email": email
+            }
+            print(json_response)
+            self.write(json.dumps(json_response))
+            self.set_header('Content-Type', 'application/json')
+            self.finish()
 
-        json_response = {
-            "status": status,
-            "email": email
-        }
-        print(json_response)
-        self.write(json.dumps(json_response))
-        self.set_header('Content-Type', 'application/json')
-        self.finish()
+        self.set_status(400)
+        return self.finish("Invalid token")
 
     async def post(self):
         data = json.loads(self.request.body)
